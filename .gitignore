@@ -9,3 +9,11 @@ build/ios/xcode/overlay.json
 build/ios/xcode/gen/
 build/android/overlay.json
 build/android/gen/
+
+# Global ~/.gitignore_global ignores /build — re-include Wails packaging assets.
+!build/
+!build/Taskfile.yml
+!build/config.yml
+!build/appicon.png
+!build/darwin/
+!build/darwin/**
