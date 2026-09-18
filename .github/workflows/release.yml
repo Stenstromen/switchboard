@@ -1,0 +1,196 @@
+name: Switchboard Build and Release
+
+on:
+  release:
+    types: [created]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build
+    runs-on: macos-latest
+    env:
+      VERSIONTAG: ${{ github.event.release.tag_name }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Resolve version from tag
+        id: version
+        run: |
+          TAG="${VERSIONTAG}"
+          VERSION="${TAG#v}"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-].+)?$ ]]; then
+            echo "Tag must look like v1.2.3 (got: ${TAG})"
+            exit 1
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "asset=Switchboard-${VERSION}.dmg" >> "$GITHUB_OUTPUT"
+
+      - name: Sync version into build assets
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          # Only the indented info.version — leave top-level Taskfile version alone.
+          sed -i.bak -E "s/^([[:space:]]+version: ).*/\\1\"${VERSION}\"/" build/config.yml
+          rm -f build/config.yml.bak
+
+          # Info.plist CFBundleVersion / CFBundleShortVersionString
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${VERSION}" build/darwin/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${VERSION}" build/darwin/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${VERSION}" build/darwin/Info.dev.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${VERSION}" build/darwin/Info.dev.plist
+
+          echo "Synced version ${VERSION}"
+          grep -E '^[[:space:]]+version:' build/config.yml | head -1
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' build/darwin/Info.plist
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install wails3
+        run: |
+          go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.23
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+          wails3 version
+
+      - name: Build universal DMG
+        run: make dmg-universal
+
+      - name: Package release asset
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          ASSET: ${{ steps.version.outputs.asset }}
+        run: |
+          test -f bin/Switchboard.dmg
+          cp bin/Switchboard.dmg "${ASSET}"
+          shasum -a 256 "${ASSET}" | tee "Switchboard_${VERSIONTAG}_checksums.txt"
+          # Sanity: universal binary should contain both slices
+          lipo -info "bin/Switchboard.app/Contents/MacOS/Switchboard"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.version.outputs.asset }}
+          path: |
+            ${{ steps.version.outputs.asset }}
+            Switchboard_${{ env.VERSIONTAG }}_checksums.txt
+
+  upload-release-assets:
+    needs: build
+    name: Upload Release Assets
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    env:
+      VERSIONTAG: ${{ github.event.release.tag_name }}
+    steps:
+      - name: Resolve version from tag
+        id: version
+        run: |
+          VERSION="${VERSIONTAG#v}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "asset=Switchboard-${VERSION}.dmg" >> "$GITHUB_OUTPUT"
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ steps.version.outputs.asset }}
+          path: ./artifacts
+
+      - name: Upload to GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ASSET: ${{ steps.version.outputs.asset }}
+        run: |
+          gh release upload "${VERSIONTAG}" \
+            "./artifacts/${ASSET}" \
+            "./artifacts/Switchboard_${VERSIONTAG}_checksums.txt" \
+            --repo "${{ github.repository }}" \
+            --clobber
+
+  homebrew-cask:
+    needs: [build, upload-release-assets]
+    name: Update Homebrew Cask
+    runs-on: ubuntu-latest
+    env:
+      VERSIONTAG: ${{ github.event.release.tag_name }}
+    steps:
+      - name: Resolve version from tag
+        id: version
+        run: |
+          VERSION="${VERSIONTAG#v}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "asset=Switchboard-${VERSION}.dmg" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout homebrew-tap repository
+        uses: actions/checkout@v7
+        with:
+          repository: stenstromen/homebrew-tap
+          token: ${{ secrets.GO_RELEASER_GITHUB_TOKEN }}
+          path: homebrew-tap
+
+      - name: Download release artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ steps.version.outputs.asset }}
+          path: ./artifacts
+
+      - name: Create Homebrew Cask
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          ASSET: ${{ steps.version.outputs.asset }}
+          REPO: ${{ github.repository }}
+        run: |
+          SHA256=$(sha256sum "./artifacts/${ASSET}" | awk '{print $1}')
+          mkdir -p homebrew-tap/Casks
+
+          # Heredoc left-aligned so the cask has valid Ruby indentation.
+          cat > homebrew-tap/Casks/switchboard.rb << EOF
+          cask "switchboard" do
+            version "${VERSION}"
+            sha256 "${SHA256}"
+
+            url "https://github.com/${REPO}/releases/download/v#{version}/Switchboard-#{version}.dmg"
+            name "Switchboard"
+            desc "SSH tunnel manager around OpenSSH"
+            homepage "https://github.com/${REPO}"
+
+            depends_on macos: ">= :monterey"
+
+            app "Switchboard.app"
+
+            zap trash: [
+              "~/Library/Application Support/Switchboard",
+            ]
+          end
+          EOF
+
+          # Drop the leading spaces introduced by YAML indentation of the run block.
+          sed -i 's/^          //' homebrew-tap/Casks/switchboard.rb
+          echo "Generated cask:"
+          cat homebrew-tap/Casks/switchboard.rb
+
+      - name: Commit and Push Homebrew Cask
+        run: |
+          cd homebrew-tap
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git add Casks/switchboard.rb
+          if git diff --cached --quiet; then
+            echo "No cask changes to commit"
+            exit 0
+          fi
+          git commit -m "Update switchboard cask for version ${VERSIONTAG}"
+          git push
