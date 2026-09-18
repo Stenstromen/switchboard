@@ -167,7 +167,7 @@ jobs:
             desc "SSH tunnel manager around OpenSSH"
             homepage "https://github.com/${REPO}"
 
-            depends_on macos: ">= :monterey"
+            depends_on macos: :monterey
 
             app "Switchboard.app"
 
