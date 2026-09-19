@@ -107,6 +107,7 @@ func (s *AppService) setUI(ui uiHooks) {
 // ServiceStartup runs after the application is ready.
 func (s *AppService) ServiceStartup(ctx context.Context, options application.ServiceOptions) error {
 	s.syncAllHosts()
+	installWakeObserver(s.onSystemWake)
 	// Do not auto-prompt for notification permission — that is done from Options.
 	go func() {
 		select {
@@ -117,6 +118,18 @@ func (s *AppService) ServiceStartup(ctx context.Context, options application.Ser
 		s.connectAutoConnect()
 	}()
 	return nil
+}
+
+// onSystemWake runs after macOS wake or screen unlock. Stale ssh children are
+// probed and bounced so the watchdog can reconnect.
+func (s *AppService) onSystemWake() {
+	n := s.mgr.RecoverStaleSessions()
+	if n > 0 {
+		if s.ui != nil {
+			s.ui.RefreshTray()
+			s.ui.RefreshMenuState()
+		}
+	}
 }
 
 func (s *AppService) syncAllHosts() {

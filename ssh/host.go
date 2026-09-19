@@ -27,7 +27,7 @@ type Host struct {
 	CertificateFile string
 
 	// ServerAliveInterval and ServerAliveCountMax map to the OpenSSH keepalive
-	// options. Zero omits them.
+	// options. Zero means apply tunnel-manager defaults (15s / 3) in SSHArgs.
 	ServerAliveInterval int
 	ServerAliveCountMax int
 

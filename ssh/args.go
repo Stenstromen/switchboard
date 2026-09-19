@@ -24,6 +24,7 @@ var reservedExtra = map[string]bool{
 	"CertificateFile":       true,
 	"LogLevel":              true,
 	"ExitOnForwardFailure":  true,
+	"TCPKeepAlive":          true,
 }
 
 // SSHArgs turns host configuration and tunnels into an OpenSSH argument
@@ -61,11 +62,14 @@ func SSHArgs(h Host, tunnels []Tunnel) []string {
 	if h.HashKnownHosts {
 		args = append(args, "-o", "HashKnownHosts=yes")
 	}
-	if h.ServerAliveInterval > 0 {
-		args = append(args, "-o", fmt.Sprintf("ServerAliveInterval=%d", h.ServerAliveInterval))
-	}
-	if h.ServerAliveCountMax > 0 {
-		args = append(args, "-o", fmt.Sprintf("ServerAliveCountMax=%d", h.ServerAliveCountMax))
+	aliveInterval, aliveCount := effectiveServerAlive(h)
+	args = append(args, "-o", fmt.Sprintf("ServerAliveInterval=%d", aliveInterval))
+	args = append(args, "-o", fmt.Sprintf("ServerAliveCountMax=%d", aliveCount))
+	if v := strings.TrimSpace(h.ExtraOptions["TCPKeepAlive"]); v != "" {
+		args = append(args, "-o", "TCPKeepAlive="+v)
+	} else {
+		// Detect dead peers after sleep/wake more promptly than SSH defaults.
+		args = append(args, "-o", "TCPKeepAlive=yes")
 	}
 	if af := normalizeAddressFamily(h.AddressFamily); af != "" {
 		args = append(args, "-o", "AddressFamily="+af)

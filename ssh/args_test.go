@@ -23,6 +23,9 @@ func TestSSHArgsMilestoneExample(t *testing.T) {
 		"-o", "ProxyJump=jump.example.com",
 		"-o", "StrictHostKeyChecking=accept-new",
 		"-o", "HashKnownHosts=yes",
+		"-o", "ServerAliveInterval=15",
+		"-o", "ServerAliveCountMax=3",
+		"-o", "TCPKeepAlive=yes",
 		"filip@server.example.com",
 	}
 	if !slices.Equal(got, want) {
@@ -32,7 +35,13 @@ func TestSSHArgsMilestoneExample(t *testing.T) {
 
 func TestSSHArgsOmitsZeroPortAndEmptyOptions(t *testing.T) {
 	got := SSHArgs(Host{HostName: "example.com", NoSession: true}, nil)
-	want := []string{"-N", "example.com"}
+	want := []string{
+		"-N",
+		"-o", "ServerAliveInterval=15",
+		"-o", "ServerAliveCountMax=3",
+		"-o", "TCPKeepAlive=yes",
+		"example.com",
+	}
 	if !slices.Equal(got, want) {
 		t.Fatalf("SSHArgs() = %q, want %q", got, want)
 	}
@@ -49,6 +58,9 @@ func TestSSHArgsTunnels(t *testing.T) {
 	got := SSHArgs(h, tunnels)
 	want := []string{
 		"-N",
+		"-o", "ServerAliveInterval=15",
+		"-o", "ServerAliveCountMax=3",
+		"-o", "TCPKeepAlive=yes",
 		"-o", "ExitOnForwardFailure=yes",
 		"-L", "8080:127.0.0.1:80",
 		"-R", "127.0.0.1:9090:localhost:9090",
@@ -78,6 +90,7 @@ func TestSSHArgsKeepaliveAndIdentity(t *testing.T) {
 		"-A",
 		"-o", "ServerAliveInterval=30",
 		"-o", "ServerAliveCountMax=3",
+		"-o", "TCPKeepAlive=yes",
 		"example.com",
 	}
 	if !slices.Equal(got, want) {
@@ -114,6 +127,9 @@ func TestSSHArgsConnectionOptions(t *testing.T) {
 		"-C",
 		"-A",
 		"-b", "192.168.1.10",
+		"-o", "ServerAliveInterval=15",
+		"-o", "ServerAliveCountMax=3",
+		"-o", "TCPKeepAlive=yes",
 		"-o", "AddressFamily=inet",
 		"-o", "LogLevel=DEBUG1",
 		"-o", "ExitOnForwardFailure=no",

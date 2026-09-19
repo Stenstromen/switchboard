@@ -76,6 +76,7 @@ type watchdog struct {
 	status  Status
 	lastErr string
 	stopped bool
+	bounce  chan struct{}
 }
 
 func newWatchdog(cfg watchdogConfig) *watchdog {
@@ -107,6 +108,7 @@ func newWatchdog(cfg watchdogConfig) *watchdog {
 		global:      cfg.global,
 		maxRetries:  cfg.host.MaxRetries,
 		status:      StatusConnecting,
+		bounce:      make(chan struct{}, 1),
 	}
 }
 
@@ -168,6 +170,13 @@ func (w *watchdog) loop(ctx context.Context) {
 				clearPID(w.runtimeDir, w.hostID)
 				w.set(StatusDisconnected, "", 0)
 				return
+			case <-w.bounce:
+				_ = adopted.Stop()
+				w.clearProc(adopted)
+				clearPID(w.runtimeDir, w.hostID)
+				w.set(StatusConnecting, "reconnecting after wake", 0)
+				delay = 0
+				continue
 			case <-adopted.done:
 				if w.isStopped() {
 					w.clearProc(adopted)
@@ -242,6 +251,14 @@ func (w *watchdog) loop(ctx context.Context) {
 			clearPID(w.runtimeDir, w.hostID)
 			w.set(StatusDisconnected, "", 0)
 			return
+		case <-w.bounce:
+			// Sleep/wake recovery: tear down without counting as a failure.
+			_ = proc.Stop()
+			w.clearProc(proc)
+			clearPID(w.runtimeDir, w.hostID)
+			w.set(StatusConnecting, "reconnecting after wake", 0)
+			delay = 0
+			continue
 		case <-proc.done:
 			if w.isStopped() {
 				w.clearProc(proc)
@@ -415,6 +432,15 @@ func (w *watchdog) clearProc(proc *Process) {
 		w.proc = nil
 	}
 	w.mu.Unlock()
+}
+
+// requestBounce asks the loop to kill the current ssh child and reconnect
+// without consuming a retry attempt (used after sleep/wake).
+func (w *watchdog) requestBounce() {
+	select {
+	case w.bounce <- struct{}{}:
+	default:
+	}
 }
 
 func (w *watchdog) set(status Status, errMsg string, pid int) {

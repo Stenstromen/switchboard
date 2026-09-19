@@ -22,6 +22,7 @@ Create and run local, remote, and dynamic port forwards from a native app — wi
 - **Multiple tunnels** — manage many profiles; connect one or connect all
 - **ProxyJump** — reach hosts through one or more jump hosts
 - **Auto-connect & reconnect** — bring tunnels up at launch; recover when the link drops
+- **Sleep/wake recovery** — after Mac sleep or unlock, probe live sessions and bounce half-dead ssh processes
 - **OpenSSH advanced options** — full `-o` coverage with Quick Help from `ssh_config(5)`
 - **macOS Keychain** — store passwords securely; never write secrets into config files
 - **Import / Export** — move tunnel configs between machines without leaking credentials

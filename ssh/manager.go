@@ -323,3 +323,27 @@ func (m *Manager) Close() {
 		_ = m.Disconnect(id)
 	}
 }
+
+// RecoverStaleSessions probes live sessions and bounces ssh children that look
+// half-dead (typical after macOS sleep/wake). The watchdog reconnects without
+// consuming retry budget. Returns how many sessions were bounced.
+func (m *Manager) RecoverStaleSessions() int {
+	m.mu.Lock()
+	var stale []*watchdog
+	for id, sess := range m.sessions {
+		snap := sess.watchdog.snapshot()
+		if snap.Status != StatusConnected {
+			continue
+		}
+		if !sessionLooksStale(snap.PID, m.tunnels[id]) {
+			continue
+		}
+		stale = append(stale, sess.watchdog)
+	}
+	m.mu.Unlock()
+
+	for _, w := range stale {
+		w.requestBounce()
+	}
+	return len(stale)
+}

@@ -65,7 +65,7 @@ while true; do sleep 0.05; done
 	)
 	defer mgr.Close()
 
-	if err := mgr.AddHost(Host{Name: "lab", HostName: "example.com"}); err != nil {
+	if err := mgr.AddHost(Host{Name: "lab", HostName: "example.com", MaxRetries: -1}); err != nil {
 		t.Fatal(err)
 	}
 	if err := mgr.Connect("lab"); err != nil {
@@ -111,6 +111,39 @@ exit 255
 	if string(raw) != "1\n" {
 		t.Fatalf("ssh starts = %q, want 1 (no reconnect on auth failure)", raw)
 	}
+}
+
+func TestManagerRecoverStaleSessionsBounces(t *testing.T) {
+	bin := writeFakeSSH(t, `
+echo "Authenticated to fake ([127.0.0.1]:22)." >&2
+trap 'exit 0' TERM INT
+while true; do sleep 0.05; done
+`)
+	mgr := NewManager(
+		WithSSHBinary(bin),
+		WithRuntimeDir(t.TempDir()),
+		WithStableAfter(40*time.Millisecond),
+		WithBackoff(Backoff{Initial: 20 * time.Millisecond, Max: 50 * time.Millisecond}),
+	)
+	defer mgr.Close()
+
+	if err := mgr.AddHost(Host{Name: "lab", HostName: "example.com", MaxRetries: -1}); err != nil {
+		t.Fatal(err)
+	}
+	// Remote-only → unprobeable → always stale after wake.
+	if err := mgr.AddTunnel("lab", Tunnel{Type: TunnelRemote, LocalPort: 9090, RemoteHost: "localhost", RemotePort: 9090}); err != nil {
+		t.Fatal(err)
+	}
+	if err := mgr.Connect("lab"); err != nil {
+		t.Fatal(err)
+	}
+	waitStatus(t, mgr, "lab", StatusConnected)
+
+	n := mgr.RecoverStaleSessions()
+	if n != 1 {
+		t.Fatalf("bounced = %d, want 1", n)
+	}
+	waitStatus(t, mgr, "lab", StatusConnected)
 }
 
 func TestManagerUnknownHost(t *testing.T) {
