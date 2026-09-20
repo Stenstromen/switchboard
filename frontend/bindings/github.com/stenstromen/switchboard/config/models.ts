@@ -98,6 +98,13 @@ export interface Profile {
      */
     "pinned"?: boolean;
     "tags"?: string[] | null;
+
+    /**
+     * DemoStatus / DemoErr are screenshot fixtures only (SWITCHBOARD_DEMO=1).
+     * They are never passed to OpenSSH.
+     */
+    "demoStatus"?: string;
+    "demoErr"?: string;
 }
 
 /**

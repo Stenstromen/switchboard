@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import type { Forward, Profile, TunnelType, TunnelView } from "../types";
-import { destination, statusLabel } from "../types";
+import { destination, statusText } from "../types";
 import { TagEditor } from "./TagEditor";
 import { ContextMenu, type ContextMenuItem, type MenuState } from "./ContextMenu";
 import { ArrowRightIcon, DuplicateIcon, EditSlidersIcon, ForwardTypeIcon, HostIcon, SearchIcon } from "./Icons";
@@ -96,7 +96,7 @@ export function TunnelDetail({
           </button>
           <div className="conn-status">
             <span className={`status-dot ${status.Status}`} />
-            <span>{statusLabel(status.Status)}</span>
+            <span>{statusText(status)}</span>
           </div>
           <button className="btn btn-ghost" title="Connection details" onClick={onDetails}>
             Details…

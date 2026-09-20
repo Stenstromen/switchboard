@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { previewArgs } from "../api";
 import type { TunnelView } from "../types";
-import { destination, statusLabel } from "../types";
+import { destination, statusText } from "../types";
 
 type Props = {
   view: TunnelView;
@@ -63,7 +63,7 @@ export function DetailsModal({ view, onClose }: Props) {
               <dt>Status</dt>
               <dd>
                 <span className={`status-dot ${status.Status}`} />
-                {statusLabel(status.Status)}
+                {statusText(status)}
               </dd>
               <dt>PID</dt>
               <dd className="mono">{status.PID || "—"}</dd>

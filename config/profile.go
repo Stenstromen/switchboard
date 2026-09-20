@@ -57,6 +57,11 @@ type Profile struct {
 	Pinned bool `json:"pinned,omitempty"`
 
 	Tags []string `json:"tags,omitempty"`
+
+	// DemoStatus / DemoErr are screenshot fixtures only (SWITCHBOARD_DEMO=1).
+	// They are never passed to OpenSSH.
+	DemoStatus string `json:"demoStatus,omitempty"`
+	DemoErr    string `json:"demoErr,omitempty"`
 }
 
 // Document is the on-disk config file.

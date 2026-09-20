@@ -10,6 +10,9 @@ build/ios/xcode/gen/
 build/android/overlay.json
 build/android/gen/
 
+# Demo screenshot runtime (copied from demo-tunnels.json)
+dev/runtime/
+
 # Global ~/.gitignore_global ignores /build — re-include Wails packaging assets.
 !build/
 !build/Taskfile.yml

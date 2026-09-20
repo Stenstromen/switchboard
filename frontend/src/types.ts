@@ -76,6 +76,16 @@ export function statusLabel(s?: Status): string {
   }
 }
 
+/** Prefer a live error/retry message when the backend provides one. */
+export function statusText(snap?: Snapshot): string {
+  if (!snap) return statusLabel(undefined);
+  const err = (snap.Err || "").trim();
+  if (err && (snap.Status === "connecting" || snap.Status === "error")) {
+    return err;
+  }
+  return statusLabel(snap.Status);
+}
+
 export function destination(p: Profile): string {
   if (p.user) return `${p.user}@${p.hostName}`;
   return p.hostName || "";

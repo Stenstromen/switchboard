@@ -2,6 +2,7 @@
 #
 #   make app             Build production Switchboard.app in ./bin
 #   make run             Build a .app and launch it
+#   make demo            Launch with fake tunnels for README screenshots
 #   make dmg             Build Switchboard.app and wrap it in a .dmg
 #   make dmg-universal   Universal (arm64+amd64) .app + .dmg
 #   make icons           Regenerate .icns from build/appicon.png
@@ -14,6 +15,8 @@ BINARY                   := $(BIN_DIR)/$(APP_NAME)
 GOARCH                   ?= $(shell go env GOARCH)
 MACOSX_DEPLOYMENT_TARGET ?= 12.0
 PACKAGE_MANAGER          ?= npm
+DEMO_DIR                 ?= $(CURDIR)/dev/runtime
+DEMO_CONFIG              := $(DEMO_DIR)/tunnels.json
 
 export GOOS := darwin
 export CGO_ENABLED := 1
@@ -21,7 +24,7 @@ export MACOSX_DEPLOYMENT_TARGET
 export CGO_CFLAGS := -mmacosx-version-min=$(MACOSX_DEPLOYMENT_TARGET)
 export CGO_LDFLAGS := -mmacosx-version-min=$(MACOSX_DEPLOYMENT_TARGET)
 
-.PHONY: all app package build frontend icons dmg dmg-universal universal run clean help open
+.PHONY: all app package build frontend icons dmg dmg-universal universal run demo clean help open
 
 all: app
 
@@ -30,6 +33,7 @@ help:
 	@echo ""
 	@echo "  make app             Build ./$(APP_BUNDLE)"
 	@echo "  make run             Build the .app and open it"
+	@echo "  make demo            Screenshot fixtures (fake tunnels + statuses)"
 	@echo "  make open            Open an already-built .app"
 	@echo "  make dmg             Build a styled .dmg installer"
 	@echo "  make dmg-universal   Universal (arm64+amd64) .app + .dmg"
@@ -69,6 +73,17 @@ dmg-universal: universal
 
 run: app
 	open "$(APP_BUNDLE)"
+
+# Fake tunnels + painted statuses for README screenshots. Uses an isolated
+# config under ./dev/runtime so your real tunnels.json is untouched.
+# Launch the Mach-O directly so SWITCHBOARD_* env vars reach the process
+# (plain `open Foo.app` does not forward them).
+demo: app
+	@mkdir -p "$(DEMO_DIR)"
+	@cp dev/demo-tunnels.json "$(DEMO_CONFIG)"
+	@echo "→ demo config $(DEMO_CONFIG)"
+	SWITCHBOARD_CONFIG="$(DEMO_CONFIG)" SWITCHBOARD_DEMO=1 \
+		"$(APP_BUNDLE)/Contents/MacOS/$(APP_NAME)"
 
 open:
 	@test -d "$(APP_BUNDLE)" || { echo "Missing $(APP_BUNDLE) — run make app first"; exit 1; }

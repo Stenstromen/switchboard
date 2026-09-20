@@ -65,6 +65,7 @@ type AppService struct {
 	mgr      *ssh.Manager
 	notifier *notifications.NotificationService
 	ui       uiHooks
+	demo     *demoOverlay
 
 	mu      sync.Mutex
 	pending map[string]*pendingPrompt
@@ -89,6 +90,12 @@ func NewAppService(store *config.Store, notifier *notifications.NotificationServ
 		notifier: notifier,
 		pending:  make(map[string]*pendingPrompt),
 		notify:   make(map[string]*notifyState),
+	}
+	if demoMode() {
+		s.demo = newDemoOverlay()
+		if doc, err := store.Load(); err == nil {
+			s.demo.seed(doc.Profiles)
+		}
 	}
 	s.mgr = ssh.NewManager(
 		ssh.WithOnStatus(s.handleStatus),
@@ -146,6 +153,9 @@ func (s *AppService) syncAllHosts() {
 }
 
 func (s *AppService) connectAutoConnect() {
+	if s.demo != nil {
+		return
+	}
 	doc, err := s.store.Load()
 	if err != nil {
 		return
@@ -368,10 +378,10 @@ func (s *AppService) ListTunnels() ([]TunnelView, error) {
 	}
 	out := make([]TunnelView, 0, len(doc.Profiles))
 	for _, p := range doc.Profiles {
-		if p.HostName != "" {
+		if p.HostName != "" && s.demo == nil {
 			_ = s.syncHost(p)
 		}
-		out = append(out, TunnelView{Profile: p, Status: s.mgr.Status(p.ID)})
+		out = append(out, TunnelView{Profile: p, Status: s.statusFor(p.ID)})
 	}
 	return out, nil
 }
@@ -385,7 +395,17 @@ func (s *AppService) GetTunnel(id string) (TunnelView, error) {
 	if !ok {
 		return TunnelView{}, fmt.Errorf("tunnel %q not found", id)
 	}
-	return TunnelView{Profile: p, Status: s.mgr.Status(id)}, nil
+	return TunnelView{Profile: p, Status: s.statusFor(id)}, nil
+}
+
+func (s *AppService) statusFor(id string) ssh.Snapshot {
+	if s.demo != nil {
+		if snap, ok := s.demo.get(id); ok {
+			return snap
+		}
+		return ssh.Snapshot{Status: ssh.StatusDisconnected}
+	}
+	return s.mgr.Status(id)
 }
 
 // NewTunnelDraft returns a blank profile template (not yet saved).
@@ -486,6 +506,12 @@ func (s *AppService) Connect(id string) error {
 	st := s.notifyStateLocked(id)
 	st.userDisconnect = false
 	s.mu.Unlock()
+	if s.demo != nil {
+		snap := ssh.Snapshot{Status: ssh.StatusConnected}
+		s.demo.set(id, snap)
+		s.handleStatus(id, snap)
+		return nil
+	}
 	if err := s.syncHost(p); err != nil {
 		return err
 	}
@@ -497,6 +523,12 @@ func (s *AppService) Connect(id string) error {
 func (s *AppService) Disconnect(id string) error {
 	s.trackStatus(id, ssh.StatusDisconnected, true)
 	s.clearNotification(lifecycleNotifyID(id))
+	if s.demo != nil {
+		snap := ssh.Snapshot{Status: ssh.StatusDisconnected}
+		s.demo.set(id, snap)
+		s.handleStatus(id, snap)
+		return nil
+	}
 	err := s.mgr.Disconnect(id)
 	if s.ui != nil {
 		s.ui.RefreshTray()

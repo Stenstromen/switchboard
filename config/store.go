@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 )
 
@@ -17,6 +18,9 @@ type Store struct {
 }
 
 func DefaultPath() (string, error) {
+	if p := strings.TrimSpace(os.Getenv("SWITCHBOARD_CONFIG")); p != "" {
+		return p, nil
+	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err

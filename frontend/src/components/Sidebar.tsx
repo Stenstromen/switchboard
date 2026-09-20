@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { TunnelView } from "../types";
-import { statusLabel } from "../types";
+import { statusText } from "../types";
 import { ContextMenu, type ContextMenuItem, type MenuState } from "./ContextMenu";
 import { ChevronDownIcon, GearIcon, PlusIcon } from "./Icons";
 
@@ -176,7 +176,7 @@ export function Sidebar({
                   <span className="tunnel-item-name-text">{t.profile.name || "Unnamed"}</span>
                 </div>
                 <div className="tunnel-item-status">
-                  <span>{statusLabel(st)}</span>
+                  <span>{statusText(t.status)}</span>
                   {(t.profile.tags?.length ?? 0) > 0 ? (
                     <span className="tunnel-item-tags"> · {t.profile.tags!.slice(0, 2).join(", ")}</span>
                   ) : null}

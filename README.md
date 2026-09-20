@@ -59,9 +59,12 @@ make app
 
 ```bash
 make run          # build Switchboard.app and launch it
+make demo         # fake tunnels + statuses for README screenshots
 make dmg          # styled .dmg installer (current architecture)
 make dmg-universal  # universal arm64 + amd64 .dmg
 ```
+
+`make demo` loads `dev/demo-tunnels.json` into an isolated config (`dev/runtime/`) with `SWITCHBOARD_DEMO=1`, so the UI shows connected/retrying states without real SSH. Your normal `~/Library/Application Support/Switchboard/` data is left alone.
 
 ## Configuration
 
