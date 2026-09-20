@@ -538,12 +538,51 @@ func (s *AppService) Disconnect(id string) error {
 
 // ConnectAll starts every saved tunnel.
 func (s *AppService) ConnectAll() error {
+	return s.connectMatching(func(config.Profile) bool { return true })
+}
+
+// DisconnectAll stops every tunnel session.
+func (s *AppService) DisconnectAll() error {
+	return s.disconnectMatching(func(config.Profile) bool { return true })
+}
+
+// ConnectByTag starts every tunnel that has the given tag.
+func (s *AppService) ConnectByTag(tag string) error {
+	tag = strings.TrimSpace(tag)
+	if tag == "" {
+		return s.connectMatching(func(p config.Profile) bool { return len(p.Tags) == 0 })
+	}
+	return s.connectMatching(func(p config.Profile) bool { return profileHasTag(p, tag) })
+}
+
+// DisconnectByTag stops every tunnel that has the given tag.
+func (s *AppService) DisconnectByTag(tag string) error {
+	tag = strings.TrimSpace(tag)
+	if tag == "" {
+		return s.disconnectMatching(func(p config.Profile) bool { return len(p.Tags) == 0 })
+	}
+	return s.disconnectMatching(func(p config.Profile) bool { return profileHasTag(p, tag) })
+}
+
+func profileHasTag(p config.Profile, tag string) bool {
+	for _, t := range p.Tags {
+		if t == tag {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *AppService) connectMatching(match func(config.Profile) bool) error {
 	doc, err := s.store.Load()
 	if err != nil {
 		return err
 	}
 	var first error
 	for _, p := range doc.Profiles {
+		if !match(p) {
+			continue
+		}
 		if err := s.Connect(p.ID); err != nil && first == nil {
 			first = err
 		}
@@ -554,17 +593,22 @@ func (s *AppService) ConnectAll() error {
 	return first
 }
 
-// DisconnectAll stops every tunnel session.
-func (s *AppService) DisconnectAll() error {
+func (s *AppService) disconnectMatching(match func(config.Profile) bool) error {
 	doc, err := s.store.Load()
 	if err != nil {
 		return err
 	}
 	var first error
 	for _, p := range doc.Profiles {
+		if !match(p) {
+			continue
+		}
 		if err := s.Disconnect(p.ID); err != nil && first == nil {
 			first = err
 		}
+	}
+	if s.ui != nil {
+		s.ui.RefreshTray()
 	}
 	return first
 }

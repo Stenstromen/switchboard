@@ -49,7 +49,9 @@
       "notifyOnStatusChange": true,
       "autoConnect": true,
       "pinned": true,
-      "tags": ["cloud"],
+      "tags": [
+        "infrastructure"
+      ],
       "demoStatus": "connected"
     },
     {
@@ -84,7 +86,9 @@
       ],
       "notifyOnStatusChange": true,
       "autoConnect": true,
-      "tags": ["backup"],
+      "tags": [
+        "backup"
+      ],
       "demoStatus": "connected"
     },
     {
@@ -119,7 +123,9 @@
       ],
       "notifyOnStatusChange": false,
       "autoConnect": true,
-      "tags": ["ci"],
+      "tags": [
+        "staging & dev"
+      ],
       "demoStatus": "connected"
     },
     {
@@ -154,7 +160,9 @@
       ],
       "notifyOnStatusChange": true,
       "autoConnect": false,
-      "tags": ["dev"],
+      "tags": [
+        "staging & dev"
+      ],
       "demoStatus": "connected"
     },
     {
@@ -189,9 +197,11 @@
       ],
       "notifyOnStatusChange": true,
       "autoConnect": true,
-      "tags": ["staging"],
+      "tags": [
+        "staging & dev"
+      ],
       "demoStatus": "connecting",
-      "demoErr": "Connection failed, retrying in 3 seconds…"
+      "demoErr": "Connection failed, retrying in 3 seconds\u2026"
     },
     {
       "id": "demo-06-nomad",
@@ -225,7 +235,9 @@
       ],
       "notifyOnStatusChange": true,
       "autoConnect": true,
-      "tags": ["infra"],
+      "tags": [
+        "infrastructure"
+      ],
       "demoStatus": "connected"
     },
     {
@@ -260,9 +272,11 @@
       ],
       "notifyOnStatusChange": true,
       "autoConnect": true,
-      "tags": ["containers"],
+      "tags": [
+        "infrastructure"
+      ],
       "demoStatus": "connecting",
-      "demoErr": "Connection failed, retrying in 3 seconds…"
+      "demoErr": "Connection failed, retrying in 3 seconds\u2026"
     },
     {
       "id": "demo-08-git",
@@ -296,7 +310,9 @@
       ],
       "notifyOnStatusChange": false,
       "autoConnect": true,
-      "tags": ["devtools"],
+      "tags": [
+        "devtools"
+      ],
       "demoStatus": "connected"
     },
     {
@@ -332,7 +348,9 @@
       "notifyOnStatusChange": true,
       "autoConnect": true,
       "pinned": true,
-      "tags": ["infra"],
+      "tags": [
+        "infrastructure"
+      ],
       "demoStatus": "connected"
     },
     {
@@ -375,7 +393,9 @@
       ],
       "notifyOnStatusChange": true,
       "autoConnect": true,
-      "tags": ["homelab"],
+      "tags": [
+        "homelab"
+      ],
       "demoStatus": "connected"
     },
     {
@@ -410,7 +430,9 @@
       ],
       "notifyOnStatusChange": true,
       "autoConnect": false,
-      "tags": ["data"],
+      "tags": [
+        "data"
+      ],
       "demoStatus": "connected"
     },
     {
@@ -453,7 +475,9 @@
       ],
       "notifyOnStatusChange": true,
       "autoConnect": true,
-      "tags": ["observability"],
+      "tags": [
+        "infrastructure"
+      ],
       "demoStatus": "connected"
     }
   ]

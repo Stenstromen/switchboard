@@ -28,7 +28,7 @@ Create and run local, remote, and dynamic port forwards from a native app — wi
 - **Import / Export** — move tunnel configs between machines without leaking credentials
 - **Menu bar & Dock** — show as menu bar icon, Dock icon, or both; tray brightens when tunnels are live
 - **Open at login** — start Switchboard with your session
-- **Pins & tags** — keep favorites on top; filter the sidebar by tag
+- **Pins & tags** — keep favorites on top; filter the sidebar by tag; tray menu groups tunnels by tag with Connect/Disconnect All
 - **Status notifications** — optional alerts when a tunnel connects, drops, or reconnects
 - **Identity & certificates** — IdentityFile, CertificateFile, agent forwarding, compression, and more
 

@@ -51,6 +51,13 @@ export function ConnectAll(): $CancellablePromise<void> {
 }
 
 /**
+ * ConnectByTag starts every tunnel that has the given tag.
+ */
+export function ConnectByTag(tag: string): $CancellablePromise<void> {
+    return $Call.ByID(2587593587, tag);
+}
+
+/**
  * DeleteTunnel removes a profile and disconnects it.
  */
 export function DeleteTunnel(id: string): $CancellablePromise<void> {
@@ -69,6 +76,13 @@ export function Disconnect(id: string): $CancellablePromise<void> {
  */
 export function DisconnectAll(): $CancellablePromise<void> {
     return $Call.ByID(2065308631);
+}
+
+/**
+ * DisconnectByTag stops every tunnel that has the given tag.
+ */
+export function DisconnectByTag(tag: string): $CancellablePromise<void> {
+    return $Call.ByID(3033062095, tag);
 }
 
 /**

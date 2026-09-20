@@ -2,6 +2,8 @@ package main
 
 import (
 	"runtime"
+	"sort"
+	"strings"
 	"sync"
 
 	"github.com/stenstromen/switchboard/config"
@@ -406,30 +408,7 @@ func (ui *AppUI) refreshTrayMenu() {
 	})
 
 	menu.AddSeparator()
-	menu.Add("Tunnels").SetEnabled(false)
-	if len(tunnels) == 0 {
-		menu.Add("No Tunnels").SetEnabled(false)
-	} else {
-		for _, t := range tunnels {
-			id := t.Profile.ID
-			name := t.Profile.Name
-			if name == "" {
-				name = t.Profile.HostName
-			}
-			if name == "" {
-				name = "Unnamed"
-			}
-			connected := t.Status.Status == ssh.StatusConnected || t.Status.Status == ssh.StatusConnecting
-			item := menu.AddCheckbox(name, connected)
-			item.OnClick(func(ctx *application.Context) {
-				if ctx.ClickedMenuItem().Checked() {
-					_ = ui.service.Connect(id)
-				} else {
-					_ = ui.service.Disconnect(id)
-				}
-			})
-		}
-	}
+	ui.appendTrayTunnelSection(menu, tunnels)
 
 	menu.AddSeparator()
 	menu.Add("Quit Switchboard").SetAccelerator("CmdOrCtrl+Q").OnClick(func(*application.Context) {
@@ -437,4 +416,110 @@ func (ui *AppUI) refreshTrayMenu() {
 	})
 
 	ui.tray.SetMenu(menu)
+}
+
+// appendTrayTunnelSection adds either a flat tunnel list (no tags) or one
+// submenu per tag with Connect/Disconnect All, matching Core Tunnel's tray UX.
+func (ui *AppUI) appendTrayTunnelSection(menu *application.Menu, tunnels []TunnelView) {
+	if len(tunnels) == 0 {
+		menu.Add("Tunnels").SetEnabled(false)
+		menu.Add("No Tunnels").SetEnabled(false)
+		return
+	}
+
+	tags, byTag, untagged := groupTunnelsByTag(tunnels)
+	if len(tags) == 0 {
+		menu.Add("Tunnels").SetEnabled(false)
+		ui.appendTrayTunnelItems(menu, tunnels)
+		return
+	}
+
+	for _, tag := range tags {
+		group := byTag[tag]
+		sub := menu.AddSubmenu(tag)
+		ui.appendTrayTagControls(sub, tag, group)
+		ui.appendTrayTunnelItems(sub, group)
+	}
+	if len(untagged) > 0 {
+		sub := menu.AddSubmenu("Untagged")
+		ui.appendTrayTagControls(sub, "", untagged)
+		ui.appendTrayTunnelItems(sub, untagged)
+	}
+}
+
+func (ui *AppUI) appendTrayTagControls(menu *application.Menu, tag string, group []TunnelView) {
+	anyConnected, anyDisconnected := tunnelLiveFlags(group)
+	menu.Add("Connect All").
+		SetEnabled(anyDisconnected).
+		OnClick(func(*application.Context) {
+			_ = ui.service.ConnectByTag(tag)
+		})
+	menu.Add("Disconnect All").
+		SetEnabled(anyConnected).
+		OnClick(func(*application.Context) {
+			_ = ui.service.DisconnectByTag(tag)
+		})
+	menu.AddSeparator()
+}
+
+func (ui *AppUI) appendTrayTunnelItems(menu *application.Menu, tunnels []TunnelView) {
+	for _, t := range tunnels {
+		id := t.Profile.ID
+		name := trayTunnelLabel(t.Profile)
+		connected := t.Status.Status == ssh.StatusConnected || t.Status.Status == ssh.StatusConnecting
+		item := menu.AddCheckbox(name, connected)
+		item.OnClick(func(ctx *application.Context) {
+			if ctx.ClickedMenuItem().Checked() {
+				_ = ui.service.Connect(id)
+			} else {
+				_ = ui.service.Disconnect(id)
+			}
+		})
+	}
+}
+
+func trayTunnelLabel(p config.Profile) string {
+	if p.Name != "" {
+		return p.Name
+	}
+	if p.HostName != "" {
+		return p.HostName
+	}
+	return "Unnamed"
+}
+
+func tunnelLiveFlags(tunnels []TunnelView) (anyConnected, anyDisconnected bool) {
+	for _, t := range tunnels {
+		live := t.Status.Status == ssh.StatusConnected || t.Status.Status == ssh.StatusConnecting
+		if live {
+			anyConnected = true
+		} else {
+			anyDisconnected = true
+		}
+	}
+	return anyConnected, anyDisconnected
+}
+
+func groupTunnelsByTag(tunnels []TunnelView) (tags []string, byTag map[string][]TunnelView, untagged []TunnelView) {
+	byTag = make(map[string][]TunnelView)
+	seen := make(map[string]bool)
+	for _, t := range tunnels {
+		if len(t.Profile.Tags) == 0 {
+			untagged = append(untagged, t)
+			continue
+		}
+		for _, tag := range t.Profile.Tags {
+			tag = strings.TrimSpace(tag)
+			if tag == "" {
+				continue
+			}
+			if !seen[tag] {
+				seen[tag] = true
+				tags = append(tags, tag)
+			}
+			byTag[tag] = append(byTag[tag], t)
+		}
+	}
+	sort.Strings(tags)
+	return tags, byTag, untagged
 }
