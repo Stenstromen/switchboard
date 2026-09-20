@@ -18,6 +18,8 @@ Create and run local, remote, and dynamic port forwards from a native app — wi
 
 ## Features
 
+![Switchboard](./demo.webp)
+
 - **Local, remote & dynamic forwards** — classic `-L` / `-R` / `-D`, plus reverse dynamic forwarding
 - **Multiple tunnels** — manage many profiles; connect one or connect all
 - **ProxyJump** — reach hosts through one or more jump hosts
