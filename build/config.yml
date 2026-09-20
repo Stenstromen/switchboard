@@ -7,7 +7,7 @@ version: '3'
 info:
   companyName: "Switchboard"
   productName: "Switchboard"
-  productIdentifier: "com.stenstromen.switchboard"
+  productIdentifier: "se.stenstromen.switchboard"
   description: "SSH tunnel manager around OpenSSH"
   copyright: "(c) 2026"
   comments: "Process manager for OpenSSH tunnels"

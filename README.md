@@ -76,7 +76,7 @@ Tunnel profiles and preferences live under:
 ~/Library/Application Support/Switchboard/
 ```
 
-Passwords are stored in the macOS Keychain under `com.stenstromen.switchboard`, not on disk. Export writes tunnels and preferences only — secrets stay in Keychain.
+Passwords are stored in the macOS Keychain under `se.stenstromen.switchboard`, not on disk. Export writes tunnels and preferences only — secrets stay in Keychain.
 
 ## Gatekeeper note
 
