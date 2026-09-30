@@ -21,10 +21,6 @@ import { SettingsPage } from "./components/SettingsPage";
 import type { PasswordPrompt, Profile, StatusEvent, TunnelView } from "./types";
 import "./styles.css";
 
-const isSettingsWindow =
-  typeof window !== "undefined" &&
-  new URLSearchParams(window.location.search).get("page") === "settings";
-
 const SIDEBAR_MIN = 180;
 const SIDEBAR_MAX = 420;
 const SIDEBAR_DEFAULT = 240;
@@ -38,9 +34,10 @@ type Mode =
 type PendingDelete = { id: string; name: string };
 
 export default function App() {
-  if (isSettingsWindow) {
-    return <SettingsPage />;
-  }
+  const settings =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("page") === "settings";
+  if (settings) return <SettingsPage />;
   return <MainApp />;
 }
 

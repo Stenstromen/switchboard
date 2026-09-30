@@ -1,0 +1,20 @@
+# https://pre-commit.com
+# Same checks as .github/workflows/ci.yml.
+repos:
+  - repo: local
+    hooks:
+      - id: go-test
+        name: go test
+        language: system
+        entry: bash -c 'mkdir -p frontend/dist && printf "%s\n" "<!doctype html><html><body><div id=\"root\"></div></body></html>" > frontend/dist/index.html && go test ./...'
+        pass_filenames: false
+        always_run: true
+        require_serial: true
+
+      - id: ui-test
+        name: ui test
+        language: system
+        entry: bash -c 'npm ci --prefix frontend && npm test --prefix frontend'
+        pass_filenames: false
+        always_run: true
+        require_serial: true
