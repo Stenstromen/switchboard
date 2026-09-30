@@ -19,6 +19,16 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      - name: Install Linux GUI dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            pkg-config \
+            libgtk-4-dev \
+            libwebkitgtk-6.0-dev \
+            libsoup-3.0-dev \
+            libglib2.0-dev
+
       - name: Test Go
         run: |
           mkdir -p frontend/dist
