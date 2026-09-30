@@ -48,13 +48,13 @@ jobs:
           /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' build/darwin/Info.plist
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
